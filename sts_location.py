@@ -21,7 +21,7 @@ import os
 # Time keeping and sleeping
 import time
 # We'll need to multi-thread in order to not hang up GUI
-import multiprocessing
+import threading
 #We need mate4dummies
 import mate4dummies.objects as mo
 
@@ -69,6 +69,7 @@ class MainWindow:
         self.ChannelsFrame.pack(side = "top")
         self.ChannelsFrame.propagate(0)
         self.busy = False
+        self.curve = False
 
 
     def connection(self):
@@ -80,16 +81,19 @@ class MainWindow:
             mo.mate.connect()
 
             if mo.mate.online:
+                print("WTF")
 
                 if mo.mate.exp_params['Result_File_Path'] == "void":
+                    print("WTF2")
                     mo.mate.disconnect()
                     tkinter.messagebox.showinfo(title=None, message="No valid Matrix session found.")
                 else:
+                    print("WTF3")
                     self.console["text"] = "Disconnect from \n Matrix"
-                    self.I_V["state"] = "enabled"
-                    self.df_V["state"] = "enabled"
-                    self.I_Z["state"] = "enabled"
-                    self.df_Z["state"] = "enabled"
+                    self.I_V["state"] = "active"
+                    self.df_V["state"] = "active"
+                    self.I_Z["state"] = "active"
+                    self.df_Z["state"] = "active"
                     self.path = mo.mate.exp_params['Result_File_Path']
 
 
@@ -100,28 +104,52 @@ class MainWindow:
         else:
             self.busy = False
             print("Kill Data gathering!!!!!!")
+            mo.esc = True
             time.sleep(1)
-            self.write.terminate()
+            self.curve = False
 
-            self.helper = mo.view.Data()
-            _ = mo.view.Deliver_Data(False)
+            if mo.mate.online:
+                self.helper = mo.view.Data()
+                _ = mo.view.Deliver_Data(False)
 
-            _ = mo.mate.disconnect()
+                _ = mo.mate.disconnect()
+
+            self.console["text"] = "Connect to \n Matrix"
+            self.I_V["relief"] = "raised"
+            self.df_V["relief"] = "raised"
+            self.I_Z["relief"] = "raised"
+            self.df_Z["relief"] = "raised"
+            self.I_V["state"] = "disabled"
+            self.df_V["state"] = "disabled"
+            self.I_Z["state"] = "disabled"
+            self.df_Z["state"] = "disabled"
+
 
     def I_V_watch(self):
         """
         To watch a channel we need to put the view name and the channel name.
         See .vied file for view name, and .expd for associated channel name.
         """
-        mo.view_name = 'I_V_Spec'
-        mo.channel_name = 'I_V'
+
         self.I_V["relief"] = "sunken"
         self.df_V["relief"] = "raised"
         self.I_Z["relief"] = "raised"
         self.df_Z["relief"] = "raised"
-        self.busy = True
-        self.write = multiprocessing.Process(target= self.writedata)
-        self.write.start()
+        if self.busy:
+            mo.esc = True
+            time.sleep(1)
+            mo.esc = False
+            mo.view_name = 'I_V_Spec'
+            mo.channel_name = 'I_V'
+            self.write = threading.Thread(target= self.writedata)
+            self.write.start()
+
+        else:
+            mo.view_name = 'I_V_Spec'
+            mo.channel_name = 'I_V'
+            self.busy = True
+            self.write = threading.Thread(target= self.writedata)
+            self.write.start()
 
 
     def df_V_watch(self):
@@ -129,15 +157,27 @@ class MainWindow:
         To watch a channel we need to put the view name and the channel name.
         See .vied file for view name, and .expd for associated channel name.
         """
-        mo.view_name = "Aux1_V_Spec"
-        mo.channel_name = 'Aux1_V'
+
         self.I_V["relief"] = "raised"
         self.df_V["relief"] = "sunken"
         self.I_Z["relief"] = "raised"
         self.df_Z["relief"] = "raised"
-        self.busy = True
-        self.write = multiprocessing.Process(target= self.writedata)
-        self.write.start()
+
+        if self.busy:
+            mo.esc = True
+            time.sleep(1)
+            mo.esc = False
+            mo.view_name = "Aux1_V_Spec"
+            mo.channel_name = 'Aux1_V'
+            self.write = threading.Thread(target= self.writedata)
+            self.write.start()
+
+        else:
+            mo.view_name = "Aux1_V_Spec"
+            mo.channel_name = 'Aux1_V'
+            self.busy = True
+            self.write = threading.Thread(target= self.writedata)
+            self.write.start()
 
 
     def I_Z_watch(self):
@@ -151,9 +191,22 @@ class MainWindow:
         self.df_V["relief"] = "raised"
         self.I_Z["relief"] = "sunken"
         self.df_Z["relief"] = "raised"
-        self.busy = True
-        self.write = multiprocessing.Process(target= self.writedata)
-        self.write.start()
+
+        if self.busy:
+            mo.esc = True
+            time.sleep(1)
+            mo.esc = False
+            mo.view_name = 'I_Z_Spec'
+            mo.channel_name = 'I_Z'
+            self.write = threading.Thread(target= self.writedata)
+            self.write.start()
+
+        else:
+            mo.view_name = 'I_Z_Spec'
+            mo.channel_name = 'I_Z'
+            self.busy = True
+            self.write = threading.Thread(target= self.writedata)
+            self.write.start()
 
 
     def df_Z_watch(self):
@@ -161,22 +214,34 @@ class MainWindow:
         To watch a channel we need to put the view name and the channel name.
         See .vied file for view name, and .expd for associated channel name.
         """
-        mo.view_name = "Aux1_Z_Spec"
-        mo.channel_name = 'Aux1_Z'
+
         self.I_V["relief"] = "raised"
         self.df_V["relief"] = "raised"
         self.I_Z["relief"] = "raised"
         self.df_Z["relief"] = "sunken"
-        self.busy = True
-        self.write = multiprocessing.Process(target= self.writedata)
-        self.write.start()
+
+        if self.busy:
+            mo.esc = True
+            time.sleep(1)
+            mo.esc = False
+            mo.view_name = "Aux1_Z_Spec"
+            mo.channel_name = 'Aux1_Z'
+            self.write = threading.Thread(target= self.writedata)
+            self.write.start()
+
+        else:
+            mo.view_name = "Aux1_Z_Spec"
+            mo.channel_name = 'Aux1_Z'
+            self.busy = True
+            self.write = threading.Thread(target= self.writedata)
+            self.write.start()
 
 
-    def get_curve_data():
+    def get_curve_data(self):
         #Make sure you know how much points to expect
         self.data_size = mo.view.Data_Size()
         #Get the data from Matrix
-        self.y_data = mo.sample_data(data_size)
+        self.y_data = mo.sample_data(self.data_size)
         #Read the run number
         #(X in the Matrix X-Y system for labeling curves and images)
         self.run_count = mo.view.Run_Count()
@@ -185,25 +250,28 @@ class MainWindow:
         self.cycle_count = mo.view.Cycle_Count()
         self.position = mo.xy_scanner.Target_Position()
         self.area = mo.xy_scanner.Area()
+        self.curve = True
 
 
     def writedata(self):
         filename = self.path + r"\locations.txt"
-        with file = open(filename, "a+"):
+        with open(filename, "a+") as file:
             file.write(mo.view_name + "\r\n")
-            if mo.chanel.Enable():
-                self.helper = mo.view.Data(self.get_curve_data)
-                _ = mo.view.Deliver_Data(True)
-                #Now something to avoid waiting froever if we need to switch from I(V) to I(Z)
-                while mo.mate.online and self.busy:
-                    mo.wait_for_event()
-                    file.write(str(self.run_count) + "_" + str(self.cycle_count)+ ": ")
-                    file.write("("+str((self.position[0]+1)/2)*self.area[0]+";"+str((self.position[1]+1)/2)*self.area[1]+")\r\n")
-                self.helper = mo.view.Data()
-                _ = mo.view.Deliver_Data(False)
-
-            else:
-                tkinter.messagebox.showinfo(title=None, message="Channel not enabled.")
+        if mo.channel.Enable():
+            self.helper = mo.view.Data(self.get_curve_data)
+            _ = mo.view.Deliver_Data(True)
+            #Now something to avoid waiting froever if we need to switch from I(V) to I(Z)
+            while mo.mate.online and self.busy:
+                mo.wait_for_event()
+                if self.curve:
+                    with open(filename, "a+") as file:
+                        file.write(str(self.run_count) + "_" + str(self.cycle_count)+ ": ")
+                        file.write("("+str(((self.position[0]+1)/2)*self.area[0]*1e9)+";"+str(((self.position[1]+1)/2)*self.area[1]*1e9)+")\r\n")
+                self.curve = False
+            self.helper = mo.view.Data()
+            _ = mo.view.Deliver_Data(False)
+        else:
+            tkinter.messagebox.showinfo(title=None, message="Channel not enabled.")
 
 
 
